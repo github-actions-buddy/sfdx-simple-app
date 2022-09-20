@@ -19,8 +19,6 @@ jobs:
             # Checkout the source code
             - name: 'Checkout source code'
               uses: actions/checkout@v2.3.2
-<<<<<<< HEAD
-=======
 
             # Validate naming convention for braching
             #- name: Validate branch name requirements
@@ -28,7 +26,6 @@ jobs:
             #  with:
             #      regex: '([a-z])+\/([a-z])+'
             #      min_length: 6
->>>>>>> d6c4c25a9ce75d035290591ceefe9949e35d1ddd
 
             # Install Salesforce CLI
             - name: 'Install Salesforce CLI'
