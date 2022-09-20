@@ -24,7 +24,7 @@ jobs:
             
             # Checkout the source code
             - name: 'Checkout source code'
-              uses: actions/checkout@v3
+              uses: actions/checkout@vv2.3.2
 
             # Validate naming convention for braching
             - name: Validate branch name requirements
@@ -107,7 +107,7 @@ jobs:
         steps:
             # Checkout the source code
             - name: 'Checkout source code'
-              uses: actions/checkout@v3
+              uses: actions/checkout@vv2.3.2
 
             # Run PMD scan
             - name: 'Run PMD scan'
@@ -182,7 +182,7 @@ jobs:
         steps:
             # Checkout the source code
             - name: 'Checkout source code'
-              uses: actions/checkout@v3
+              uses: actions/checkout@vv2.3.2
 
             # Check for package changes using git diff
             - name: 'Check for package changes'
