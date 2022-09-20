@@ -88,23 +88,16 @@ jobs:
               with:
                   flags: LWC
 
-            # Store secret for production org
-            - name: 'Populate SFDX_URL'
-              shell: bash
-              run: |
-                  echo ${{ secrets.SFDX_PRODUCTION_URL}} > ./SFDX_PRODUCTION_URL.txt
-
             # Authenticate to org
-            - name: 'Authenticate to Production Org'
-              run: sfdx auth:sfdxurl:store -r ${{secrets.SFDX_PRODUCTION_URL}} -u ${{secretes.SFDX_USERNAME}} --setalias DevHub
+            #- name: 'Authenticate to Production Org'
+            #  run: sfdx auth:sfdxurl:store -f ./DEVHUB_SFDX_URL.txt --setalias DevHub
               
             # Code push
-            - name: 'Push SFDX code'
-              run: sfdx force:source:push -u ${{secretes.SFDX_USERNAME}}
+            #  run: sfdx force:source:push -u ${{secretes.SFDX_USERNAME}}
               
             # Test Code
-            - name: 'Test SFDX code'
-              run: sfdx force:apex:test:run --resultformat human -u ${{secretes.SFDX_USERNAME}}
+            #- name: 'Test SFDX code'
+            #  run: sfdx force:apex:test:run --resultformat human -u ${{secretes.SFDX_USERNAME}}
               
             # Open Application
             #- name: 'Open Production org'
@@ -140,6 +133,12 @@ jobs:
                   echo "$HOME/sfdx/bin" >> $GITHUB_PATH
                   ~/sfdx/bin/sfdx version
             
+            # Store secret for production org
+            - name: 'Populate SFDX_URL'
+              shell: bash
+              run: |
+                  echo ${{ secrets.SFDX_PRODUCTION_URL}} > ./SFDX_PRODUCTION_URL.txt
+
             # Authenticate dev hub
             - name: 'Authenticate Dev Hub'
               run: sfdx auth:sfdxurl:store -f ./DEVHUB_SFDX_URL.txt -a DevHub -d
