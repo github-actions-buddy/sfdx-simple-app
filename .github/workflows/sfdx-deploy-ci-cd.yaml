@@ -12,7 +12,7 @@ on:
 
 # Jobs to be executed
 jobs:
-    format-lint-lwc:
+    checkout-install-dependencies:
         runs-on: ubuntu-latest
         #if: ${{ github.actor != 'dependabot[bot]' }}
         steps:
@@ -62,7 +62,7 @@ jobs:
               if: steps.cache-npm.outputs.cache-hit != 'true'
               run: npm ci
 
-    org-test:
+    checkout-install-build-org:
         runs-on: ubuntu-latest
         needs: format-lint-lwc
         steps:
@@ -100,7 +100,7 @@ jobs:
 
             # Authenticate dev hub
             - name: 'Authenticate Dev Hub'
-              run: sfdx auth:web:login -f ./DEVHUB_SFDX_URL.txt -a DevHub -d
+              run: sfdx auth:sfdxurl:store -f ./DEVHUB_SFDX_URL.txt -a DevHub -d
 
             # Create scratch org
             - name: 'Create scratch org'
