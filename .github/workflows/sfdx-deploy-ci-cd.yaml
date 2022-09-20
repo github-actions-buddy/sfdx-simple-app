@@ -30,7 +30,7 @@ jobs:
             #      echo y | sfdx plugins:install sfdx-git-delta
             #      sfdx plugins 
             
-            # Validate naming convention
+            # Validate naming convention for braching
             - name: Validate branch name requirements
               uses: Kiran-Waghamare/sfdx-simple-app@master
               with:
