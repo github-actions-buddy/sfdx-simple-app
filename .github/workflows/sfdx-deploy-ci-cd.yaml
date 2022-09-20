@@ -15,7 +15,26 @@ jobs:
     format-lint-lwc:
         runs-on: ubuntu-latest
         #if: ${{ github.actor != 'dependabot[bot]' }}
-        steps:
+        steps:  
+            # install SFDX-Git-Delta plugin - https://github.com/scolladon/sfdx-git-delta
+            #- name: 'Installing sfdx git delta'
+            #  run: | 
+            #      echo y | sfdx plugins:install sfdx-git-delta
+            #      sfdx plugins 
+            
+            # Checkout the source code
+            - name: 'Checkout source code'
+              uses: actions/checkout@v2
+              with:
+                fetch-depth: 0
+
+            # Validate naming convention for braching
+            - name: Validate branch name requirements
+              uses: Kiran-Waghamare/sfdx-simple-app@master
+              with:
+                  regex: '([a-z])+\/([a-z])+'
+                  min_length: 6
+
             # Install Salesforce CLI
             - name: 'Install Salesforce CLI'
               run: |
@@ -24,25 +43,6 @@ jobs:
                   tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
                   echo "$HOME/sfdx/bin" >> $GITHUB_PATH
                   ~/sfdx/bin/sfdx version
-            
-            # install SFDX-Git-Delta plugin - https://github.com/scolladon/sfdx-git-delta
-            #- name: 'Installing sfdx git delta'
-            #  run: | 
-            #      echo y | sfdx plugins:install sfdx-git-delta
-            #      sfdx plugins 
-            
-            # Validate naming convention for braching
-            - name: Validate branch name requirements
-              uses: Kiran-Waghamare/sfdx-simple-app@master
-              with:
-                  regex: '([a-z])+\/([a-z])+'
-                  min_length: 6
-
-            # Checkout the source code
-            - name: 'Checkout source code'
-              uses: actions/checkout@v2
-              with:
-                fetch-depth: 0
 
             # Check for Nodejs version
             - name: Use Node.js 14 LTS
