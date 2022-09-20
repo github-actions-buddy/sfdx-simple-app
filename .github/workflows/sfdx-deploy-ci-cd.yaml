@@ -4,10 +4,11 @@ name: Deploy to SFDX production org
 # Definition when the workflow should run
 on:
     push:
-      branches: [ master ]
-      paths:
-        - 'force-app/**'
-            
+      branches:
+            - master
+      paths-ignore:
+            - 'sfdx-project.json'
+            - 'README.md'
 
 # Jobs to be executed
 jobs:
