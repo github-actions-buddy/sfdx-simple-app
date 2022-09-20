@@ -43,12 +43,16 @@ jobs:
               uses: actions/checkout@v2
               with:
                 fetch-depth: 0
-            
-            - name: Use Node.js 16.x
+
+            # Check for Nodejs version
+            - name: Use Node.js 14 LTS
+              uses: actions/setup-node@v2
               with:
-                node-version: 16.x
-                cache: "npm"
-                cache-dependency-path: package-lock.json
+                    node-version: '14'
+            
+            # Install Nodejs
+            - name: Install NPM Modules
+              run: npm install
 
             # Cache node_modules to speed up the process
             - name: 'Restore node_modules cache'
