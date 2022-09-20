@@ -100,7 +100,7 @@ jobs:
 
             # Authenticate dev hub
             - name: 'Authenticate Dev Hub'
-              run: sfdx auth:sfdxurl:store -f ./DEVHUB_SFDX_URL.txt -a DevHub -d
+              run: sfdx auth:web:login -f ./DEVHUB_SFDX_URL.txt -a DevHub -d
 
             # Create scratch org
             - name: 'Create scratch org'
