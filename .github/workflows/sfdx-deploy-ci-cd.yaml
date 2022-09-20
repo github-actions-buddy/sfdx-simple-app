@@ -11,7 +11,7 @@ on:
 
 # Jobs to be executed
 jobs:
-    deploy-branch-to-production-org:
+    format-lint-lwc:
         runs-on: ubuntu-latest
         #if: ${{ github.actor != 'dependabot[bot]' }}
         steps:
@@ -30,27 +30,170 @@ jobs:
             #      echo y | sfdx plugins:install sfdx-git-delta
             #      sfdx plugins 
             
+            # Validate naming convention
+            - name: Validate branch name requirements
+              uses: Kiran-Waghamare/sfdx-simple-app@master
+              with:
+                  regex: '([a-z])+\/([a-z])+'
+                  min_length: 6
+
             # Checkout the source code
             - name: 'Checkout source code'
               uses: actions/checkout@v2
               with:
                 fetch-depth: 0
               
-              # Store secret for production org
+            # Cache node_modules to speed up the process
+            - name: 'Restore node_modules cache'
+              id: cache-npm
+              uses: actions/cache@v1
+              with:
+                  path: node_modules
+                  key: npm-${{ hashFiles('**/package-lock.json') }}
+                  restore-keys: |
+                      npm-${{ env.cache-name }}-
+                      npm-
+              
+            # Install npm dependencies for Prettier and Jest
+            - name: 'Install npm dependencies'
+              if: steps.cache-npm.outputs.cache-hit != 'true'
+              run: npm ci
+
+            # Prettier formatting
+            - name: 'Code formatting verification with Prettier'
+              run: npm run prettier:verify
+
+            # Lint LWC / Aura
+            - name: 'Lint Lightning Web Components / Aura Components'
+              run: npm run lint
+
+            # LWC unit tests
+            - name: 'Unit test Lightning Web Components'
+              run: npm run test:unit:coverage
+
+            # Upload code coverage data
+            - name: 'Upload code coverage for LWC to Codecov.io'
+              uses: codecov/codecov-action@v2.0.2
+              with:
+                  flags: LWC
+
+            # Store secret for production org
             - name: 'Populate SFDX_URL'
               shell: bash
               run: |
                   echo ${{ secrets.SFDX_PRODUCTION_URL}} > ./SFDX_PRODUCTION_URL.txt
 
-              # Authenticate to org
+            # Authenticate to org
             - name: 'Authenticate to Production Org'
-              run: sfdx auth:web:login -r ${{secrets.SFDX_PRODUCTION_URL}} -u ${{secretes.SFDX_USERNAME}} --setalias DevHub
-
+              run: sfdx auth:sfdxurl:store -r ${{secrets.SFDX_PRODUCTION_URL}} -u ${{secretes.SFDX_USERNAME}} --setalias DevHub
+              
+            # Code push
             - name: 'Push SFDX code'
               run: sfdx force:source:push -u ${{secretes.SFDX_USERNAME}}
-
+              
+            # Test Code
             - name: 'Test SFDX code'
               run: sfdx force:apex:test:run --resultformat human -u ${{secretes.SFDX_USERNAME}}
+              
+            # Open Application
+            #- name: 'Open Production org'
+            #  run: sfdx force:org:open -u ${{secretes.SFDX_USERNAME}}
+    
+    org-test:
+        runs-on: ubuntu-latest
+        needs: format-lint-lwc
+        steps:
+            # Checkout the source code
+            - name: 'Checkout source code'
+              uses: actions/checkout@v2
 
-            - name: 'Open Production org'
-              run: sfdx force:org:open -u ${{secretes.SFDX_USERNAME}}
+            # Run PMD scan
+            - name: 'Run PMD scan'
+              uses: pmd/pmd-github-action@v1.2.1
+              id: pmd
+              with:
+                  sourcePath: 'force-app'
+                  rulesets: 'ruleset.xml'
+
+            # Check for PMD violations
+            - name: 'Check for PMD violations'
+              if: steps.pmd.outputs.violations != 0
+              run: exit 1
+
+            # Install Salesforce CLI
+            - name: 'Install Salesforce CLI'
+              run: |
+                  wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
+                  mkdir ~/sfdx
+                  tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
+                  echo "$HOME/sfdx/bin" >> $GITHUB_PATH
+                  ~/sfdx/bin/sfdx version
+            
+            # Authenticate dev hub
+            - name: 'Authenticate Dev Hub'
+              run: sfdx auth:sfdxurl:store -f ./DEVHUB_SFDX_URL.txt -a DevHub -d
+
+            # Create scratch org
+            - name: 'Create scratch org'
+              run: sfdx force:org:create -f config/project-scratch-def.json -a DevHub -s -d 1
+
+            # Deploy source to scratch org
+            - name: 'Push source to scratch org'
+              run: sfdx force:source:push
+
+            # Assign permissionset
+            - name: 'Assign permissionset to default user'
+              run: sfdx force:user:permset:assign -n dreamhouse
+
+            # Import sample data
+            - name: 'Import sample data'
+              run: sfdx force:data:tree:import -p ./data/sample-data-plan.json
+
+            # Run Apex tests in scratch org
+            - name: 'Run Apex tests'
+              run: sfdx force:apex:test:run -c -r human -d ./tests/apex -w 20
+
+            # Delete temporary test file that Codecov is unable to parse
+            - name: 'Delete coverage file (temporary step)'
+              run: rm ./tests/apex/test-result-707*-codecoverage.json
+
+            # Upload code coverage data
+            - name: 'Upload code coverage for Apex to Codecov.io'
+              uses: codecov/codecov-action@v2.0.2
+              with:
+                  flags: Apex
+
+            # Housekeeping
+            - name: 'Delete scratch org'
+              if: always()
+              run: sfdx force:org:delete -p -u DevHub
+
+    trigger-packaging:
+        runs-on: ubuntu-latest
+        needs: org-test
+        steps:
+            # Checkout the source code
+            - name: 'Checkout source code'
+              uses: actions/checkout@v2
+
+            # Check for package changes using git diff
+            - name: 'Check for package changes'
+              id: checkForChanges
+              run: |
+                  git fetch origin ${{ github.event.before }} --depth=1
+                  changedPaths=$( git diff-tree --name-only ${{ github.event.before }} $GITHUB_SHA )
+                  set +e
+                  hasChanges='false'
+                  if [ $(echo "$changedPaths" | grep -c '^force-app') == 1 ]; then
+                      hasChanges='true'
+                  fi
+                  echo "::set-output name=hasChanges::$hasChanges"
+
+            # Trigger packaging workflow if needed
+            #- name: 'Trigger packaging workflow if needed'
+            #  uses: peter-evans/repository-dispatch@v1.1.0
+            #  if: ${{ steps.checkForChanges.outputs.hasChanges == 'true' }}
+            #  with:
+            #      token: ${{ secrets.BOT_ACCESS_TOKEN }}
+            #      event-type: start-packaging
+            #      client-payload: '{ "ref": "${{ github.ref }}", "sha": "${{ github.sha }}" }'
