@@ -62,7 +62,7 @@ jobs:
               if: steps.cache-npm.outputs.cache-hit != 'true'
               run: npm ci
 
-    checkout-install-build-org:
+    checkout-create-org:
         runs-on: ubuntu-latest
         needs: format-lint-lwc
         steps:
