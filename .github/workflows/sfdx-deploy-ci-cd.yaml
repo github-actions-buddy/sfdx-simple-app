@@ -7,7 +7,7 @@ on:
       branches:
             - master
       paths-ignore:
-            - 'sfdx-project.json'
+            #- 'sfdx-project.json'
             - 'README.md'
 
 # Jobs to be executed
