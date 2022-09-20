@@ -4,9 +4,9 @@ name: Deploy to SFDX production org
 # Definition when the workflow should run
 on:
     push:
-      branches:
+        branches:
             - master
-      paths-ignore:
+        paths-ignore:
             #- 'sfdx-project.json'
             - 'README.md'
 
@@ -15,23 +15,10 @@ jobs:
     format-lint-lwc:
         runs-on: ubuntu-latest
         #if: ${{ github.actor != 'dependabot[bot]' }}
-        steps:  
-            # install SFDX-Git-Delta plugin - https://github.com/scolladon/sfdx-git-delta
-            #- name: 'Installing sfdx git delta'
-            #  run: | 
-            #      echo y | sfdx plugins:install sfdx-git-delta
-            #      sfdx plugins 
-            
+        steps:
             # Checkout the source code
             - name: 'Checkout source code'
-              uses: actions/checkout@vv2.3.2
-
-            # Validate naming convention for braching
-            - name: Validate branch name requirements
-              uses: Kiran-Waghamare/sfdx-simple-app@master
-              with:
-                  regex: '([a-z])+\/([a-z])+'
-                  min_length: 6
+              uses: actions/checkout@v2.3.2
 
             # Install Salesforce CLI
             - name: 'Install Salesforce CLI'
@@ -46,8 +33,8 @@ jobs:
             - name: Use Node.js 14 LTS
               uses: actions/setup-node@v2
               with:
-                    node-version: '14'
-            
+                  node-version: '14'
+
             # Install Nodejs
             - name: Install NPM Modules
               run: npm install
@@ -62,52 +49,19 @@ jobs:
                   restore-keys: |
                       npm-${{ env.cache-name }}-
                       npm-
-              
+
             # Install npm dependencies for Prettier and Jest
             - name: 'Install npm dependencies'
               if: steps.cache-npm.outputs.cache-hit != 'true'
               run: npm ci
 
-            # Prettier formatting
-            - name: 'Code formatting verification with Prettier'
-              run: npm run prettier:verify
-
-            # Lint LWC / Aura
-            - name: 'Lint Lightning Web Components / Aura Components'
-              run: npm run lint
-
-            # LWC unit tests
-            - name: 'Unit test Lightning Web Components'
-              run: npm run test:unit:coverage
-
-            # Upload code coverage data
-            - name: 'Upload code coverage for LWC to Codecov.io'
-              uses: codecov/codecov-action@v2.0.2
-              with:
-                  flags: LWC
-
-            # Authenticate to org
-            #- name: 'Authenticate to Production Org'
-            #  run: sfdx auth:sfdxurl:store -f ./DEVHUB_SFDX_URL.txt --setalias DevHub
-              
-            # Code push
-            #  run: sfdx force:source:push -u ${{secretes.SFDX_USERNAME}}
-              
-            # Test Code
-            #- name: 'Test SFDX code'
-            #  run: sfdx force:apex:test:run --resultformat human -u ${{secretes.SFDX_USERNAME}}
-              
-            # Open Application
-            #- name: 'Open Production org'
-            #  run: sfdx force:org:open -u ${{secretes.SFDX_USERNAME}}
-    
     org-test:
         runs-on: ubuntu-latest
         needs: format-lint-lwc
         steps:
             # Checkout the source code
             - name: 'Checkout source code'
-              uses: actions/checkout@vv2.3.2
+              uses: actions/checkout@v2.3.2
 
             # Run PMD scan
             - name: 'Run PMD scan'
@@ -130,7 +84,7 @@ jobs:
                   tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
                   echo "$HOME/sfdx/bin" >> $GITHUB_PATH
                   ~/sfdx/bin/sfdx version
-            
+
             # Store secret for production org
             - name: 'Populate SFDX_URL'
               shell: bash
@@ -182,7 +136,7 @@ jobs:
         steps:
             # Checkout the source code
             - name: 'Checkout source code'
-              uses: actions/checkout@vv2.3.2
+              uses: actions/checkout@v2.3.2
 
             # Check for package changes using git diff
             - name: 'Check for package changes'
@@ -196,12 +150,3 @@ jobs:
                       hasChanges='true'
                   fi
                   echo "::set-output name=hasChanges::$hasChanges"
-
-            # Trigger packaging workflow if needed
-            #- name: 'Trigger packaging workflow if needed'
-            #  uses: peter-evans/repository-dispatch@v1.1.0
-            #  if: ${{ steps.checkForChanges.outputs.hasChanges == 'true' }}
-            #  with:
-            #      token: ${{ secrets.BOT_ACCESS_TOKEN }}
-            #      event-type: start-packaging
-            #      client-payload: '{ "ref": "${{ github.ref }}", "sha": "${{ github.sha }}" }'
